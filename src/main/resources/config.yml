@@ -5,7 +5,7 @@
 # Spigot https://www.spigotmc.org/resources/89634/
 #
 # Do not change config-version
-config-version: 5
+config-version: 6
 language:
   #Default locale
   #If you want to add more languages copy language/en.yml, rename it and apply your changes,
@@ -43,3 +43,4 @@ equipment_change:
   max_checked_players_per_tick: 3
   #How often the check should be done (there are 20 ticks in a second)
   frequency_ticks: 5
+

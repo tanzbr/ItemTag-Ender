@@ -1,0 +1,8 @@
+# ItemTag-Ender Command Templates Configuration
+# When dev_mode is true, staffs can add any raw command to an item.
+# When false (Production), only predefined templates are allowed.
+dev_mode: false
+
+# Map of command templates: 'template_id': 'command'
+command_templates:
+  example_reward: 'eco give %player% 500'

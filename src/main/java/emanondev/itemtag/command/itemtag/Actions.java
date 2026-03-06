@@ -31,8 +31,9 @@ import java.util.concurrent.TimeUnit;
 
 public class Actions extends ListenerSubCmd {
 
-    private static final String[] actionsSub = new String[]{"add", "addline", "set", "permission", "cooldown", "cooldownmsg", "cooldownmsgtype",
-            "cooldownid", "uses", "maxuses", "remove", "info", "consume", "visualcooldown", "displayuses"};
+    private static final String[] actionsSub = new String[] { "add", "addline", "set", "permission", "cooldown",
+            "cooldownmsg", "cooldownmsgtype",
+            "cooldownid", "uses", "maxuses", "remove", "info", "consume", "visualcooldown", "displayuses" };
 
     public Actions(ItemTagCommand cmd) {
         super("actions", cmd, true, true);
@@ -44,7 +45,7 @@ public class Actions extends ListenerSubCmd {
         ItemStack item = this.getItemInHand(p);
         if (args.length == 1) {
             p.openInventory(new ActionsGui(p, item, alias, this.getName()).getInventory());
-            //onFail(p, alias);
+            // onFail(p, alias);
             return;
         }
         try {
@@ -92,7 +93,7 @@ public class Actions extends ListenerSubCmd {
                     displayUses(p, alias, args, item);
                 case "info":
                     p.openInventory(new ActionsGui(p, item, alias, this.getName()).getInventory());
-                    //info(p, args, item);
+                    // info(p, args, item);
                     return;
             }
             onFail(p, alias);
@@ -102,10 +103,11 @@ public class Actions extends ListenerSubCmd {
         }
     }
 
-    //it actions displayUses [boolean]
+    // it actions displayUses [boolean]
     private void displayUses(Player p, String label, String[] args, ItemStack item) {
         TagItem tagItem = ItemTag.getTagItem(item);
-        boolean value = args.length >= 3 ? Aliases.BOOLEAN.convertAlias(args[2]) : !ActionsUtility.getDisplayUses(tagItem);
+        boolean value = args.length >= 3 ? Aliases.BOOLEAN.convertAlias(args[2])
+                : !ActionsUtility.getDisplayUses(tagItem);
         ActionsUtility.setDisplayUses(tagItem, value);
         ActionsUtility.updateUsesDisplay(item);
         if (value) {
@@ -117,10 +119,11 @@ public class Actions extends ListenerSubCmd {
         }
     }
 
-    //it actions visualcooldown [boolean]
+    // it actions visualcooldown [boolean]
     private void visualCooldown(Player sender, String label, String[] args, ItemStack item) {
         TagItem tagItem = ItemTag.getTagItem(item);
-        boolean value = args.length >= 3 ? Aliases.BOOLEAN.convertAlias(args[2]) : !ActionsUtility.getVisualCooldown(tagItem);
+        boolean value = args.length >= 3 ? Aliases.BOOLEAN.convertAlias(args[2])
+                : !ActionsUtility.getVisualCooldown(tagItem);
         ActionsUtility.setVisualCooldown(tagItem, value);
         if (value) {
             sendLanguageString("visualcooldown.feedback.set", "", sender);
@@ -129,7 +132,7 @@ public class Actions extends ListenerSubCmd {
         }
     }
 
-    //it actions consume [boolean]
+    // it actions consume [boolean]
     private void consume(Player sender, String label, String[] args, ItemStack item) {
         TagItem tagItem = ItemTag.getTagItem(item);
         boolean value = args.length >= 3 ? Aliases.BOOLEAN.convertAlias(args[2]) : !ActionsUtility.getConsume(tagItem);
@@ -180,7 +183,7 @@ public class Actions extends ListenerSubCmd {
         }
     }
 
-    //it action cooldownmsg [message  ]
+    // it action cooldownmsg [message ]
     private void cooldownMsg(Player p, String label, String[] args, ItemStack item) {
         try {
             String cooldownMsg = args.length == 2 ? null : String.join(" ", Arrays.copyOfRange(args, 2, args.length));
@@ -238,7 +241,6 @@ public class Actions extends ListenerSubCmd {
                     getLanguageStringList("cooldown.description", null, p)));
         }
     }
-
 
     private void maxUses(Player p, String label, String[] args, ItemStack item) {
         try {
@@ -312,16 +314,22 @@ public class Actions extends ListenerSubCmd {
                 hover.append(" ");
             }
         }
-        Util.sendMessage(p, new ComponentBuilder(msg).event(new HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT, (new ComponentBuilder(hover.toString())).create())).create());
+        Util.sendMessage(p,
+                new ComponentBuilder(msg).event(new HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
+                        (new ComponentBuilder(hover.toString())).create())).create());
     }
 
     private void invalidActionInfo(Player p, String actionType, String actionInfo) {
-        String msg = getLanguageString("invalid-actioninfo.message", "", p, "%error%", actionInfo, "%action%", actionType);
+        String msg = getLanguageString("invalid-actioninfo.message", "", p, "%error%", actionInfo, "%action%",
+                actionType);
         if (msg == null || msg.isEmpty()) {
             return;
         }
         Util.sendMessage(p, new ComponentBuilder(msg).event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new ComponentBuilder(String.join("\n", UtilsString.fix(ActionHandler.getAction(actionType).getInfo(), p, true))).create())).create());
+                new ComponentBuilder(
+                        String.join("\n", UtilsString.fix(ActionHandler.getAction(actionType).getInfo(), p, true)))
+                        .create()))
+                .create());
     }
 
     private void set(Player p, String label, String[] args, ItemStack item) {
@@ -333,7 +341,8 @@ public class Actions extends ListenerSubCmd {
             if (line < 0) {
                 throw new IllegalArgumentException();
             }
-            //ArrayList<String> tmp = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
+            // ArrayList<String> tmp = new ArrayList<>(Arrays.asList(args).subList(4,
+            // args.length));
             String actionType = args[3].toLowerCase(Locale.ENGLISH);
             String actionInfo = String.join(" ", Arrays.asList(args).subList(4, args.length));
             String originalAction = String.join(" ", Arrays.asList(args).subList(3, args.length));
@@ -345,6 +354,13 @@ public class Actions extends ListenerSubCmd {
             }
             try {
                 ActionHandler.validateActionInfo(actionType, actionInfo);
+            } catch (IllegalArgumentException e) {
+                if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                    Util.sendMessage(p, "&c" + e.getMessage());
+                    return;
+                }
+                invalidActionInfo(p, actionType, actionInfo);
+                return;
             } catch (Exception e) {
                 invalidActionInfo(p, actionType, actionInfo);
                 return;
@@ -409,6 +425,13 @@ public class Actions extends ListenerSubCmd {
             }
             try {
                 ActionHandler.validateActionInfo(actionType, actionInfo);
+            } catch (IllegalArgumentException e) {
+                if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                    Util.sendMessage(p, "&c" + e.getMessage());
+                    return;
+                }
+                invalidActionInfo(p, actionType, actionInfo);
+                return;
             } catch (Exception e) {
                 invalidActionInfo(p, actionType, actionInfo);
                 return;
@@ -449,6 +472,13 @@ public class Actions extends ListenerSubCmd {
             }
             try {
                 ActionHandler.validateActionInfo(actionType, actionInfo);
+            } catch (IllegalArgumentException e) {
+                if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                    Util.sendMessage(p, "&c" + e.getMessage());
+                    return;
+                }
+                invalidActionInfo(p, actionType, actionInfo);
+                return;
             } catch (Exception e) {
                 invalidActionInfo(p, actionType, actionInfo);
                 return;
@@ -486,16 +516,18 @@ public class Actions extends ListenerSubCmd {
                     case "consume":
                     case "displayuses":
                         return CompleteUtility.complete(args[2], Aliases.BOOLEAN);
-                    case "cooldownmsgtype":{
-                        return CompleteUtility.complete(args[2], VersionUtils.isVersionAfter(1,11 )?
-                                Arrays.asList("chat","actionbar"): Collections.singletonList("chat"));
+                    case "cooldownmsgtype": {
+                        return CompleteUtility.complete(args[2],
+                                VersionUtils.isVersionAfter(1, 11) ? Arrays.asList("chat", "actionbar")
+                                        : Collections.singletonList("chat"));
                     }
                 }
                 return Collections.emptyList();
             case 4:
                 switch (args[1].toLowerCase(Locale.ENGLISH)) {
                     case "add":
-                        return ActionHandler.tabComplete(sender, args[2].toLowerCase(Locale.ENGLISH), new ArrayList<>(Arrays.asList(args).subList(3, args.length)));
+                        return ActionHandler.tabComplete(sender, args[2].toLowerCase(Locale.ENGLISH),
+                                new ArrayList<>(Arrays.asList(args).subList(3, args.length)));
                     case "set":
                     case "addline":
                         return CompleteUtility.complete(args[3], ActionHandler.getTypes());
@@ -504,10 +536,12 @@ public class Actions extends ListenerSubCmd {
             default:
                 switch (args[1].toLowerCase(Locale.ENGLISH)) {
                     case "add":
-                        return ActionHandler.tabComplete(sender, args[2].toLowerCase(Locale.ENGLISH), new ArrayList<>(Arrays.asList(args).subList(3, args.length)));
+                        return ActionHandler.tabComplete(sender, args[2].toLowerCase(Locale.ENGLISH),
+                                new ArrayList<>(Arrays.asList(args).subList(3, args.length)));
                     case "set":
                     case "addline":
-                        return ActionHandler.tabComplete(sender, args[3].toLowerCase(Locale.ENGLISH), new ArrayList<>(Arrays.asList(args).subList(4, args.length)));
+                        return ActionHandler.tabComplete(sender, args[3].toLowerCase(Locale.ENGLISH),
+                                new ArrayList<>(Arrays.asList(args).subList(4, args.length)));
                 }
         }
         return Collections.emptyList();
@@ -534,29 +568,32 @@ public class Actions extends ListenerSubCmd {
                     String cooldownId = ActionsUtility.getCooldownId(tagItem);
                     if (ItemTag.get().getCooldownAPI().hasCooldown(event.getPlayer(), cooldownId)) {
                         String msg = ActionsUtility.getCooldownMsg(tagItem);
-                        if (msg==null){
+                        if (msg == null) {
                             return;
                         }
                         String type = ActionsUtility.getCooldownMsgType(tagItem);
-                        msg = UtilsString.fix(msg,event.getPlayer(),true);
-                        switch (type){
+                        msg = UtilsString.fix(msg, event.getPlayer(), true);
+                        switch (type) {
                             case "chat":
-                                Util.sendMessage(event.getPlayer(),msg);
+                                Util.sendMessage(event.getPlayer(), msg);
                                 break;
                             case "actionbar":
-                                if (VersionUtils.isVersionAfter(1,11,2)){
-                                    event.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR,new TextComponent(msg));
+                                if (VersionUtils.isVersionAfter(1, 11, 2)) {
+                                    event.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR,
+                                            new TextComponent(msg));
                                     break;
                                 }
-                                ItemTag.get().log("Invalid action cooldown message type &e"+type+"&f not available on this server version");
+                                ItemTag.get().log("Invalid action cooldown message type &e" + type
+                                        + "&f not available on this server version");
                                 break;
                             default:
-                                ItemTag.get().log("Invalid action cooldown message type &e"+type);
+                                ItemTag.get().log("Invalid action cooldown message type &e" + type);
                         }
 
                         return;
                     }
-                    ItemTag.get().getCooldownAPI().setCooldown(event.getPlayer(), cooldownId, cooldown, TimeUnit.MILLISECONDS);
+                    ItemTag.get().getCooldownAPI().setCooldown(event.getPlayer(), cooldownId, cooldown,
+                            TimeUnit.MILLISECONDS);
                     if (ActionsUtility.getVisualCooldown(tagItem)) {
                         event.getPlayer().setCooldown(item.getType(), (int) (cooldown / 50));
                     }
@@ -578,10 +615,12 @@ public class Actions extends ListenerSubCmd {
                         e.printStackTrace();
                     }
                 event.setCancelled(true);
-                //event.setUseItemInHand(Event.Result.DENY);  TODO config
+                // event.setUseItemInHand(Event.Result.DENY); TODO config
                 if (uses > 0) {
                     if (uses == 1 && ActionsUtility.getConsume(tagItem)) {
-                        if (event.getItem().getAmount() == 1) { //1.8 doesn't like  event.getItem().setAmount(event.getItem().getAmount() - 1); on single items
+                        if (event.getItem().getAmount() == 1) { // 1.8 doesn't like
+                                                                // event.getItem().setAmount(event.getItem().getAmount()
+                                                                // - 1); on single items
                             try {
                                 if (event.getHand() == EquipmentSlot.HAND) {
                                     event.getPlayer().getInventory().setItemInMainHand(null);
@@ -623,10 +662,11 @@ public class Actions extends ListenerSubCmd {
                                 if (ActionsUtility.getDisplayUses(tagItem)) {
                                     ActionsUtility.updateUsesDisplay(clone);
                                 }
-                                InventoryUtils.giveAmount(event.getPlayer(), clone, 1, InventoryUtils.ExcessMode.DROP_EXCESS);
+                                InventoryUtils.giveAmount(event.getPlayer(), clone, 1,
+                                        InventoryUtils.ExcessMode.DROP_EXCESS);
                             }
 
-                        } catch (Throwable t) { //1.8 compability
+                        } catch (Throwable t) { // 1.8 compability
                             if (event.getItem().getAmount() == 1) {
                                 ActionsUtility.setUses(tagItem, uses - 1);
                             } else {
@@ -634,8 +674,9 @@ public class Actions extends ListenerSubCmd {
                                 clone.setAmount(clone.getAmount() - 1);
                                 event.getPlayer().getInventory().setItemInHand(clone);
                                 ActionsUtility.setUses(ItemTag.getTagItem(clone), uses - 1);
-                                //has no displayuses on 1.8
-                                InventoryUtils.giveAmount(event.getPlayer(), clone, 1, InventoryUtils.ExcessMode.DROP_EXCESS);
+                                // has no displayuses on 1.8
+                                InventoryUtils.giveAmount(event.getPlayer(), clone, 1,
+                                        InventoryUtils.ExcessMode.DROP_EXCESS);
                             }
                         }
                     }

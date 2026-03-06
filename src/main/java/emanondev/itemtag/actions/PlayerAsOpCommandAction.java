@@ -37,20 +37,32 @@ public class PlayerAsOpCommandAction extends Action {
         if (text.isEmpty()) {
             throw new IllegalStateException();
         }
+        boolean devMode = ItemTag.get().getConfig().getBoolean("security.dev_mode", false);
+        if (!devMode && !text.startsWith("template:")) {
+            throw new IllegalArgumentException("You cannot add free commands in Production mode. Use template:<name>");
+        }
+        if (!devMode && text.startsWith("template:")) {
+            String templateName = text.substring("template:".length());
+            if (ItemTag.get().getConfig().getString("security.command_templates." + templateName) == null) {
+                throw new IllegalArgumentException("Template '" + templateName + "' does not exist in config.yml");
+            }
+        }
     }
 
     @Override
     public void execute(Player player, String text) {
         if (!text.startsWith("-pin")) {
-            //old unsafe
+            // old unsafe
             if (!ItemTag.get().getConfig().getBoolean("actions.unsafe_mode", false)) {
                 ItemTag.get().log("&cWARNING");
-                ItemTag.get().log("Hello! You see this message because &e" + player.getName() + "&f is using an item with");
+                ItemTag.get()
+                        .log("Hello! You see this message because &e" + player.getName() + "&f is using an item with");
                 ItemTag.get().log("a &ecommandasop&f action and this item was created a few versions ago, this item");
                 ItemTag.get().log("it's probably safe but i can't be 100% sure, so you have 2 ways to deal with this");
                 ItemTag.get().log("");
                 ItemTag.get().log("A: If you are 100% certain that only trusted players can use creative mode you");
-                ItemTag.get().log("   can turn unsafe mode on by going on &econfig.yml &fand set &eactions: unsafe_mode: &ctrue");
+                ItemTag.get().log(
+                        "   can turn unsafe mode on by going on &econfig.yml &fand set &eactions: unsafe_mode: &ctrue");
                 ItemTag.get().log("B: You can manually update old items with /itemtagupdateolditem while");
                 ItemTag.get().log("   having those items in hand, or you can just delete them and refund them");
                 ItemTag.get().log("");
@@ -67,6 +79,45 @@ public class PlayerAsOpCommandAction extends Action {
                 ItemTag.get().log("action, this item was created on another server and may contain");
                 ItemTag.get().log("malicious actions, therefor this action was blocked");
                 return;
+            }
+        }
+
+        boolean devMode = ItemTag.get().getConfig("templates.yml").getBoolean("dev_mode", false);
+        if (text.startsWith("template:")) {
+            String templateName = text.substring("template:".length());
+            String templateCommand = ItemTag.get().getConfig("templates.yml")
+                    .getString("command_templates." + templateName);
+            if (templateCommand == null) {
+                ItemTag.get().log(
+                        "&cWARNING: User " + player.getName() + " executed non-existent template: " + templateName);
+                player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                        "&cThis item relies on a template that no longer exists."));
+                return;
+            }
+            text = templateCommand;
+        } else {
+            if (!devMode) {
+                String foundTemplateName = null;
+                org.bukkit.configuration.ConfigurationSection section = ItemTag.get().getConfig("templates.yml")
+                        .getConfigurationSection("command_templates");
+                if (section != null) {
+                    for (String key : section.getKeys(false)) {
+                        if (text.equals(section.getString(key))) {
+                            foundTemplateName = key;
+                            break;
+                        }
+                    }
+                }
+
+                if (foundTemplateName != null) {
+                    text = ItemTag.get().getConfig("templates.yml").getString("command_templates." + foundTemplateName);
+                } else {
+                    ItemTag.get().log(
+                            "&cWARNING: Blocked raw commandasop execution in Production mode from " + player.getName());
+                    player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                            "&cThis item contains legacy actions and must be migrated by an Admin."));
+                    return;
+                }
             }
         }
 

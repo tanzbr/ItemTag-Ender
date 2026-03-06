@@ -67,10 +67,10 @@ public class ItemTag extends APlugin {
             Bukkit.getServer().getPluginManager().disablePlugin(this);
             return;
         }
-        //true Enable
+        // true Enable
 
         try {
-            //register equipmentchange listener
+            // register equipmentchange listener
             if (VersionUtils.isVersionUpTo(1, 8, 9)) {
                 equipChangeListener = new EquipmentChangeListenerUpTo1_8();
             } else if (VersionUtils.isVersionUpTo(1, 12, 2)) {
@@ -80,20 +80,21 @@ public class ItemTag extends APlugin {
             }
             equipChangeListener.reload();
 
-            //TODO new features
-            /*targetManager = new TargetManager();
-            targetManager.load();
-            TriggerManager.load();
-            ActionManager.load();
-            ConditionManager.load();
-            ActivityManager.reload();*/
+            // TODO new features
+            /*
+             * targetManager = new TargetManager();
+             * targetManager.load();
+             * TriggerManager.load();
+             * ActionManager.load();
+             * ConditionManager.load();
+             * ActivityManager.reload();
+             */
 
             this.registerCommand(new ItemTagCommand(), Collections.singletonList("it"));
             new ReloadCommand(this).register();
             this.registerCommand("itemtagupdateolditem", new ItemTagUpdateOldItem(), null);
 
-
-            ActionHandler.clearActions(); //required for plugman reload
+            ActionHandler.clearActions(); // required for plugman reload
             ActionHandler.registerAction(new DelayedAction());
             ActionHandler.registerAction(new PermissionAction());
             ActionHandler.registerAction(new PlayerCommandAction());
@@ -120,7 +121,7 @@ public class ItemTag extends APlugin {
     public void reload() {
         equipChangeListener.reload();
         Aliases.reload();
-        ActivityManager.reload();//TODO
+        ActivityManager.reload();// TODO
         ItemTagCommand.get().reload();
     }
 
@@ -153,7 +154,8 @@ public class ItemTag extends APlugin {
                         continue;
                     }
                     actions.set(i, prefix + "-pin" +
-                            SecurityUtil.generateControlKey(action.substring(prefix.length())) + " " + action.substring(prefix.length()));
+                            SecurityUtil.generateControlKey(action.substring(prefix.length())) + " "
+                            + action.substring(prefix.length()));
                     updating = true;
                 }
                 if (updating) {
@@ -173,6 +175,12 @@ public class ItemTag extends APlugin {
         if (oldConfigVersion <= 5) {
             getConfig().set("flag.vanishcurse.override_keepinventory", false);
         }
+        if (oldConfigVersion <= 6) {
+            emanondev.itemedit.YMLConfig tplConfig = getConfig("templates.yml");
+            tplConfig.set("dev_mode", false);
+            tplConfig.set("command_templates.example_reward", "eco give %player% 500");
+            tplConfig.save();
+        }
     }
 
     private void initDataPersistance() throws Exception {
@@ -181,8 +189,10 @@ public class ItemTag extends APlugin {
                 try {
                     initNBTAPI();
                 } catch (Exception e) {
-                    Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "NBTAPI is selected as data.preference but it's not installed/working, " +
-                            "if you wish to use NBTAPI get the plugin at www.spigotmc.org/resources/7939/");
+                    Bukkit.getConsoleSender()
+                            .sendMessage(ChatColor.RED
+                                    + "NBTAPI is selected as data.preference but it's not installed/working, " +
+                                    "if you wish to use NBTAPI get the plugin at www.spigotmc.org/resources/7939/");
                     initDefault();
                 }
                 return;
@@ -190,13 +200,14 @@ public class ItemTag extends APlugin {
                 initDefault();
                 return;
             default:
-                Bukkit.getConsoleSender().sendMessage(ChatColor.RED + getConfig().getString("data.preference", "SPIGOT") + " is selected as data.preference but it's unknown");
+                Bukkit.getConsoleSender().sendMessage(ChatColor.RED + getConfig().getString("data.preference", "SPIGOT")
+                        + " is selected as data.preference but it's unknown");
                 initDefault();
         }
     }
 
     private void initNBTAPI() throws Exception {
-        new NBTAPITagItem(new ItemStack(Material.STONE));//force load NBTAPI classes or fails
+        new NBTAPITagItem(new ItemStack(Material.STONE));// force load NBTAPI classes or fails
         USE_NBTAPI = true;
         tagManager = new NBTAPITagManager();
         this.log("Data using NBTAPI");
