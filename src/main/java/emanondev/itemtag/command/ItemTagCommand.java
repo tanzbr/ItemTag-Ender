@@ -22,6 +22,7 @@ public class ItemTagCommand extends AbstractCommand {
         this.registerSubCommand(new Flag(this));
         this.registerSubCommand(new ExtractTemplateSubCommand(this));
         this.registerSubCommand(new MigrateItemSubCommand(this));
+        this.registerSubCommand(new MigrateModeSubCommand(this));
         // TODO this.registerSubCommand(new ActivitySubCommand(this));
         // TODO this.registerSubCommand(new TriggerAction(this));
     }

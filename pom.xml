@@ -108,13 +108,8 @@
             <groupId>emanondev.itemedit</groupId>
             <artifactId>ItemEdit</artifactId>
             <version>3.7.8</version>
-            <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/ItemEdit-3.7.8.jar</systemPath>
         </dependency>
         <!-- nbtapi -->
         <dependency>

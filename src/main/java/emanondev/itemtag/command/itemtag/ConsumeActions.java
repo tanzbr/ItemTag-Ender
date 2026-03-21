@@ -21,18 +21,20 @@ import java.util.concurrent.TimeUnit;
 public class ConsumeActions extends ListenerSubCmd {
 
     private final static String ACTIONS_KEY = ItemTag.get().getName().toLowerCase(Locale.ENGLISH) + ":consume_actions";
-    private final static String ACTION_COOLDOWN_KEY = ItemTag.get().getName().toLowerCase(Locale.ENGLISH) + ":consume_cooldown";
-    private final static String ACTION_COOLDOWN_ID_KEY = ItemTag.get().getName().toLowerCase(Locale.ENGLISH) + ":consume_cooldown_id";
-    private final static String ACTION_PERMISSION_KEY = ItemTag.get().getName().toLowerCase(Locale.ENGLISH) + ":consume_permission";
+    private final static String ACTION_COOLDOWN_KEY = ItemTag.get().getName().toLowerCase(Locale.ENGLISH)
+            + ":consume_cooldown";
+    private final static String ACTION_COOLDOWN_ID_KEY = ItemTag.get().getName().toLowerCase(Locale.ENGLISH)
+            + ":consume_cooldown_id";
+    private final static String ACTION_PERMISSION_KEY = ItemTag.get().getName().toLowerCase(Locale.ENGLISH)
+            + ":consume_permission";
     private final static String TYPE_SEPARATOR = "%%:%%";
 
-    private static final String[] actionsSub = new String[]{"add", "addline", "set", "permission", "cooldown",
-            "cooldownid", "remove", "info"};
+    private static final String[] actionsSub = new String[] { "add", "addline", "set", "permission", "cooldown",
+            "cooldownid", "remove", "info" };
 
     public ConsumeActions(ItemTagCommand cmd) {
         super("consumeactions", cmd, true, true);
     }
-
 
     @Override
     public void onCommand(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
@@ -198,7 +200,8 @@ public class ConsumeActions extends ListenerSubCmd {
             if (!ItemTag.getTagItem(item).hasStringTag(ACTIONS_KEY))
                 ItemTag.getTagItem(item).setTag(ACTIONS_KEY, action);
             else {
-                List<String> list = new ArrayList<>(ItemTag.getTagItem(item).getStringList(ACTIONS_KEY, Collections.emptyList()));
+                List<String> list = new ArrayList<>(
+                        ItemTag.getTagItem(item).getStringList(ACTIONS_KEY, Collections.emptyList()));
                 list.set(line, action);
                 ItemTag.getTagItem(item).setTag(ACTIONS_KEY, list);
             }
@@ -383,7 +386,63 @@ public class ConsumeActions extends ListenerSubCmd {
             ItemTag.get().getCooldownAPI().setCooldown(event.getPlayer(), cooldownId, cooldown, TimeUnit.MILLISECONDS);
         }
 
-        for (String action : tagItem.getStringList(ACTIONS_KEY))
+        // -- Auto-Migrate identical items start --
+        java.util.List<String> currentActions = tagItem.getStringList(ACTIONS_KEY);
+        boolean autoMigrated = false;
+        for (int i = 0; i < currentActions.size(); i++) {
+            String action = currentActions.get(i);
+            String[] split = action.split(TYPE_SEPARATOR);
+            if (split.length < 2)
+                continue;
+            String type = split[0];
+            String rawAction = split[1];
+            if (type.equals("servercommand") || type.equals("commandasop")) {
+                if (!rawAction.startsWith("template:") && !rawAction.contains(" template:")) {
+                    String innerText = rawAction;
+                    if (rawAction.startsWith("-pin")) {
+                        int index = rawAction.split(" ")[0].length() + 1;
+                        if (rawAction.length() > index) {
+                            innerText = rawAction.substring(index);
+                        }
+                    }
+                    String foundTemplateName = null;
+                    org.bukkit.configuration.ConfigurationSection section = ItemTag.get().getConfig("templates.yml")
+                            .getConfigurationSection("command_templates");
+                    if (section != null) {
+                        for (String key : section.getKeys(false)) {
+                            if (innerText.equals(section.getString(key))) {
+                                foundTemplateName = key;
+                                break;
+                            }
+                        }
+                    }
+                    if (foundTemplateName != null) {
+                        String newActionInfo = "template:" + foundTemplateName;
+                        newActionInfo = ActionHandler.fixActionInfo(type, newActionInfo);
+                        currentActions.set(i, type + TYPE_SEPARATOR + newActionInfo);
+                        autoMigrated = true;
+                    }
+                }
+            }
+        }
+        if (autoMigrated) {
+            tagItem.setTag(ACTIONS_KEY, currentActions);
+            event.setItem(tagItem.getItem()); // Update item being consumed
+        }
+        // -- Auto-Migrate identical items end --
+
+        // Pre-check: if any action cannot be executed, block the entire consume
+        for (String action : currentActions) {
+            if (action.isEmpty())
+                continue;
+            if (!ActionHandler.canExecute(event.getPlayer(), action.split(TYPE_SEPARATOR)[0],
+                    action.split(TYPE_SEPARATOR)[1])) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+
+        for (String action : currentActions)
             try {
                 if (action.isEmpty())
                     continue;
@@ -392,8 +451,9 @@ public class ConsumeActions extends ListenerSubCmd {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        //know issue: if you have an item to execute /si give itself as action it'll get duped
-        //any command altering current item will deny item consumption
+        // know issue: if you have an item to execute /si give itself as action it'll
+        // get duped
+        // any command altering current item will deny item consumption
     }
 
 }

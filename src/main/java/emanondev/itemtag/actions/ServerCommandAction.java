@@ -23,22 +23,26 @@ public class ServerCommandAction extends Action {
         if (text.isEmpty()) {
             throw new IllegalStateException();
         }
-        boolean devMode = ItemTag.get().getConfig().getBoolean("security.dev_mode", false);
+        boolean devMode = ItemTag.get().getConfig("templates.yml").getBoolean("dev_mode", false);
         if (!devMode && !text.startsWith("template:")) {
             throw new IllegalArgumentException("You cannot add free commands in Production mode. Use template:<name>");
         }
         if (!devMode && text.startsWith("template:")) {
             String templateName = text.substring("template:".length());
-            if (ItemTag.get().getConfig().getString("security.command_templates." + templateName) == null) {
-                throw new IllegalArgumentException("Template '" + templateName + "' does not exist in config.yml");
+            if (ItemTag.get().getConfig("templates.yml").getString("command_templates." + templateName) == null) {
+                throw new IllegalArgumentException("Template '" + templateName + "' does not exist in templates.yml");
             }
         }
     }
 
     @Override
-    public void execute(Player player, String text) {
+    public boolean canExecute(Player player, String text) {
+        if (text.startsWith("template:") || text.contains(" template:")) {
+            return true;
+        }
+
         if (!text.startsWith("-pin")) {
-            // old unsafe
+            // old unsafe item
             if (!ItemTag.get().getConfig().getBoolean("actions.unsafe_mode", false)) {
                 ItemTag.get().log("&cWARNING");
                 ItemTag.get()
@@ -53,19 +57,67 @@ public class ServerCommandAction extends Action {
                 ItemTag.get().log("   having those items in hand, or you can just delete them and refund them");
                 ItemTag.get().log("");
                 ItemTag.get().log("&aAll items inside /serveritem (/si) have already been updated");
-                return;
+                player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                        "&cPor favor, abra um ticket para que possamos converter este item e ele voltar a funcionar."));
+                return false;
             }
         } else {
             int index = text.split(" ")[0].length() + 1;
             String code = text.substring("-pin".length(), index - 1);
-            text = text.substring(index);
-            if (!SecurityUtil.verifyControlKey(text, code)) {
+            String innerText = text.substring(index);
+
+            // Allow legacy execution if it's already an approved template! (even if pin is
+            // invalid)
+            boolean devMode = ItemTag.get().getConfig("templates.yml").getBoolean("dev_mode", false);
+            boolean templateExists = false;
+            if (!devMode) {
+                org.bukkit.configuration.ConfigurationSection section = ItemTag.get().getConfig("templates.yml")
+                        .getConfigurationSection("command_templates");
+                if (section != null) {
+                    for (String key : section.getKeys(false)) {
+                        if (innerText.equals(section.getString(key))) {
+                            templateExists = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (templateExists) {
+                return true;
+            }
+
+            if (!SecurityUtil.verifyControlKey(innerText, code)) {
                 ItemTag.get().log("&cWARNING");
                 ItemTag.get().log("&e" + player.getName() + "&f is using an item that contains a &eservercommand");
                 ItemTag.get().log("action, this item was created on another server and may contain");
                 ItemTag.get().log("malicious actions, therefor this action was blocked");
-                return;
+                player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                        "&cPor favor, abra um ticket para que possamos converter este item e ele voltar a funcionar."));
+                return false;
             }
+
+            if (!devMode) {
+                ItemTag.get().log("&cWARNING: Blocked raw servercommand execution in Production mode from "
+                        + player.getName());
+                player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                        "&cPor favor, abra um ticket para que possamos converter este item e ele voltar a funcionar."));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void execute(Player player, String text) {
+        if (!canExecute(player, text)) {
+            return;
+        }
+
+        if (!text.startsWith("-pin")) {
+            // old unsafe -- already validated by canExecute, unsafe_mode must be true
+        } else {
+            int index = text.split(" ")[0].length() + 1;
+            text = text.substring(index);
         }
 
         boolean devMode = ItemTag.get().getConfig("templates.yml").getBoolean("dev_mode", false);
@@ -98,10 +150,7 @@ public class ServerCommandAction extends Action {
                 if (foundTemplateName != null) {
                     text = ItemTag.get().getConfig("templates.yml").getString("command_templates." + foundTemplateName);
                 } else {
-                    ItemTag.get().log("&cWARNING: Blocked raw servercommand execution in Production mode from "
-                            + player.getName());
-                    player.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                            "&cThis item contains legacy actions and must be migrated by an Admin."));
+                    // Should not reach here since canExecute already blocks this
                     return;
                 }
             }

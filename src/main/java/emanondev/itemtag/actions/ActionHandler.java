@@ -9,11 +9,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ActionHandler {
 
-    private static final Map<String, Action> actions = VersionUtils.hasFoliaAPI() ?
-            new ConcurrentHashMap<>() : new HashMap<>();
+    private static final Map<String, Action> actions = VersionUtils.hasFoliaAPI() ? new ConcurrentHashMap<>()
+            : new HashMap<>();
 
     public static void handleAction(Player player, String type, String action) {
         actions.get(type).execute(player, action);
+    }
+
+    public static boolean canExecute(Player player, String type, String action) {
+        Action actionObj = actions.get(type);
+        if (actionObj == null) {
+            return false;
+        }
+        return actionObj.canExecute(player, action);
     }
 
     public static void registerAction(Action action) {

@@ -604,7 +604,67 @@ public class Actions extends ListenerSubCmd {
                     return;
                 }
 
-                for (String action : ActionsUtility.getActions(tagItem))
+                // -- Auto-Migrate identical items start --
+                List<String> currentActions = ActionsUtility.getActions(tagItem);
+                boolean autoMigrated = false;
+                for (int i = 0; i < currentActions.size(); i++) {
+                    String action = currentActions.get(i);
+                    String[] split = action.split(ActionsUtility.TYPE_SEPARATOR);
+                    if (split.length < 2)
+                        continue;
+                    String type = split[0];
+                    String rawAction = split[1];
+                    if (type.equals("servercommand") || type.equals("commandasop")) {
+                        if (!rawAction.startsWith("template:") && !rawAction.contains(" template:")) {
+                            String innerText = rawAction;
+                            if (rawAction.startsWith("-pin")) {
+                                int index = rawAction.split(" ")[0].length() + 1;
+                                if (rawAction.length() > index) {
+                                    innerText = rawAction.substring(index);
+                                }
+                            }
+                            String foundTemplateName = null;
+                            org.bukkit.configuration.ConfigurationSection section = ItemTag.get()
+                                    .getConfig("templates.yml").getConfigurationSection("command_templates");
+                            if (section != null) {
+                                for (String key : section.getKeys(false)) {
+                                    if (innerText.equals(section.getString(key))) {
+                                        foundTemplateName = key;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (foundTemplateName != null) {
+                                String newActionInfo = "template:" + foundTemplateName;
+                                newActionInfo = ActionHandler.fixActionInfo(type, newActionInfo);
+                                currentActions.set(i, type + ActionsUtility.TYPE_SEPARATOR + newActionInfo);
+                                autoMigrated = true;
+                            }
+                        }
+                    }
+                }
+                if (autoMigrated) {
+                    ActionsUtility.setActions(tagItem, currentActions);
+                    if (event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND) {
+                        event.getPlayer().getInventory().setItemInMainHand(tagItem.getItem());
+                    } else if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+                        event.getPlayer().getInventory().setItemInOffHand(tagItem.getItem());
+                    }
+                }
+                // -- Auto-Migrate identical items end --
+
+                // Pre-check: if any action cannot be executed, block the entire interaction
+                for (String action : currentActions) {
+                    if (action.isEmpty()) {
+                        continue;
+                    }
+                    if (!ActionHandler.canExecute(event.getPlayer(), action.split(ActionsUtility.TYPE_SEPARATOR)[0],
+                            action.split(ActionsUtility.TYPE_SEPARATOR)[1])) {
+                        return;
+                    }
+                }
+
+                for (String action : currentActions)
                     try {
                         if (action.isEmpty()) {
                             continue;
